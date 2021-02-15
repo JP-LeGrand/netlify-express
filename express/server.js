@@ -1,9 +1,7 @@
 "use strict";
-require("../model/sentence.js");
-require("../model/word.js");
+require("../model/sentence");
+require("../model/word");
 const express = require("express");
-const sentenceRoute = require("../routes/sentenceRoute.js");
-const wordRoute = require("../routes/wordRoute.js");
 const mongoose = require("mongoose");
 const { connect, connection } = mongoose;
 const path = require("path");
@@ -26,8 +24,6 @@ app.use(function (req, res, next) {
   );
   next();
 });
-app.use("/sentence", sentenceRoute);
-app.use("/word", wordRoute);
 
 const mongoUri =
   "mongodb+srv://admin:passwordpassword@cluster0.fe0mt.mongodb.net/SentenceBuilder?retryWrites=true&w=majority";
@@ -44,6 +40,60 @@ connection.on("connected", () => {
 connection.on("error", (err) => {
   console.error("Error connecting to mongo", err);
 });
+
+const Sentence = mongoose.model("Sentence");
+const Word = mongoose.model("Word");
+
+router.get("/word/words", async (req, res) => {
+  const word = await Word.find();
+  res.send(word);
+});
+
+//Retrieves the different word types
+router.get("/word/types", async (req, res) => {
+  const word = await Word.distinct("type");
+  res.send(word);
+});
+
+//Allows user to submit a word type
+router.post("/word/submit", async (req, res) => {
+  const { word, type } = req.body;
+  if (!word || !type) {
+    return res.status(422).send({ error: "You must provide a  word and type" });
+  }
+
+  try {
+    const w = new Word({ word, type });
+    await w.save();
+    res.send(w);
+  } catch (err) {
+    return res.status(422).send({ error: err.message });
+  }
+});
+//Allows user to get sentence history
+router.get("/sentence/history", async (req, res) => {
+  const sentence = await Sentence.find();
+  res.send(sentence);
+});
+
+//Allows user to submit sentence
+router.post("/sentence/submit", async (req, res) => {
+  const { sentence, dateTime } = req.body;
+  if (!sentence || !dateTime) {
+    return res
+      .status(422)
+      .send({ error: "You must provide a  sentence and dateTime" });
+  }
+
+  try {
+    const s = new Sentence({ sentence, dateTime });
+    await s.save();
+    res.send(s);
+  } catch (err) {
+    return res.status(422).send({ error: err.message });
+  }
+});
+
 router.get("/another", (req, res) => res.json({ route: req.originalUrl }));
 router.post("/", (req, res) => res.json({ postBody: req.body }));
 
